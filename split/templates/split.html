@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Split Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            touch-action: none;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: row;
+        }
+
+        .player-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+        }
+
+        #player1-area {
+            background: #2c3e50;
+            border-right: 2px solid #34495e;
+        }
+
+        #player2-area {
+            background: #34495e;
+            border-left: 2px solid #2c3e50;
+        }
+
+        .player-name {
+            font-size: 1.2rem;
+            color: white;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .hands {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .hand {
+            width: 80px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #player2-area .hands {
+            transform: rotate(180deg);
+        }
+
+        .hand.selected {
+            border-color: #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+
+        .hand.lost {
+            background: rgba(231, 76, 60, 0.2);
+            border-color: #e74c3c;
+        }
+
+        .hand svg {
+            width: 70%;
+            height: 70%;
+        }
+
+        #player2-area .hand svg {
+            transform: rotate(180deg);
+        }
+
+        .controls {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 0.5rem;
+            border-radius: 20px;
+        }
+
+        .button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        #splitButton {
+            background: #27ae60;
+        }
+
+        #splitButton:disabled {
+            background: #95a5a6;
+            opacity: 0.5;
+        }
+
+        #resetButton {
+            background: #e74c3c;
+        }
+
+        .player-area.active {
+            background: #2980b9;
+        }
+        #infoButton {
+            background: #3498db;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 30;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .turn-indicator {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 0.8rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.3rem 0.8rem;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+
+        .hand.can-split {
+            border-color: #2ecc71;
+            animation: glow 1.5s infinite;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px #2ecc71; }
+            50% { box-shadow: 0 0 20px #2ecc71; }
+            100% { box-shadow: 0 0 5px #2ecc71; }
+        }
+
+        #message {
+            position: fixed;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 20;
+            display: none;
+        }
+
+        #message.winner {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+        
+        #rulesModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .rules-content {
+            background: #2c3e50;
+            color: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            max-width: 600px;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .close-rules {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="player1-area" class="player-area">
+            <div class="turn-indicator"></div>
+            <div class="player-name">Player 1</div>
+            <div class="hands">
+                <div class="hand" data-player="1" data-hand="0"></div>
+                <div class="hand" data-player="1" data-hand="1"></div>
+            </div>
+        </div>
+
+        <div id="player2-area" class="player-area">
+            <div class="turn-indicator"></div>
+            <div class="player-name">Player 2</div>
+            <div class="hands">
+                <div class="hand" data-player="2" data-hand="0"></div>
+                <div class="hand" data-player="2" data-hand="1"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="splitButton" class="button" disabled>Split</button>
+            <button id="resetButton" class="button">Reset</button>
+        </div>
+        <button id="infoButton" class="button">i</button>
+       
+
+        <div id="message"></div>
+    </div>
+    <div id="rulesModal">
+        <div class="rules-content">
+            <button class="close-rules">&times;</button>
+            <h2 style="margin-bottom: 1rem">Game Rules for "Split"</h2>
+            <div style="line-height: 1.6">
+                <h3>Objective</h3>
+                <p>Defeat your opponent by making them lose both hands.</p>
+                
+                <h3 style="margin-top: 1rem">Setup</h3>
+                <ul style="margin-left: 1.5rem">
+                    <li>Each player has two hands, each initially showing 1 finger.</li>
+                    <li>A player loses when both hands are "lost" (reaching exactly 5 fingers).</li>
+                </ul>
+
+                <h3 style="margin-top: 1rem">How to Play</h3>
+                <ol style="margin-left: 1.5rem">
+                    <li><strong>Take Turns:</strong> Players alternate turns. On your turn:
+                        <ul>
+                            <li>Select one of your own hands to attack with</li>
+                            <li>Choose one of the opponent's active hands to attack</li>
+                        </ul>
+                    </li>
+                    <li><strong>Attack Mechanics:</strong>
+                        <ul>
+                            <li>Add your fingers to the opponent's chosen hand</li>
+                            <li>If the result is more than 5, subtract 5 (modulo 5)</li>
+                            <li>A hand with exactly 5 fingers is "lost"</li>
+                        </ul>
+                    </li>
+                    <li><strong>Split Option:</strong>
+                        <ul>
+                            <li>If you have one hand with an even number of fingers</li>
+                            <li>You can split them equally between both hands</li>
+                            <li>This can revive a lost hand</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h3 style="margin-top: 1rem">Winning</h3>
+                <p>The game ends when a player loses both hands. The other player wins!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const handSVGs = {
+            1: `<svg viewBox="0 0 100 100">
+                    <path d="M50 20 L50 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="50" cy="20" r="8" fill="white"/>
+                </svg>`,
+            2: `<svg viewBox="0 0 100 100">
+                    <path d="M40 20 L40 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M60 20 L60 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="40" cy="20" r="8" fill="white"/>
+                    <circle cx="60" cy="20" r="8" fill="white"/>
+                </svg>`,
+            3: `<svg viewBox="0 0 100 100">
+                    <path d="M30 20 L30 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M50 20 L50 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M70 20 L70 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="30" cy="20" r="8" fill="white"/>
+                    <circle cx="50" cy="20" r="8" fill="white"/>
+                    <circle cx="70" cy="20" r="8" fill="white"/>
+                </svg>`,
+            4: `<svg viewBox="0 0 100 100">
+                    <path d="M25 20 L25 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M42 20 L42 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M58 20 L58 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M75 20 L75 80" stroke="white" stroke-width="8" stroke-linecap="round"/>
+                    <circle cx="25" cy="20" r="8" fill="white"/>
+                    <circle cx="42" cy="20" r="8" fill="white"/>
+                    <circle cx="58" cy="20" r="8" fill="white"/>
+                    <circle cx="75" cy="20" r="8" fill="white"/>
+                </svg>`,
+            5: `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="rgba(231, 76, 60, 0.3)"/>
+                    <line x1="30" y1="30" x2="70" y2="70" stroke="#e74c3c" stroke-width="8" stroke-linecap="round"/>
+                    <line x1="70" y1="30" x2="30" y2="70" stroke="#e74c3c" stroke-width="8" stroke-linecap="round"/>
+                </svg>`
+        };
+
+        let selectedHand = null;
+        let gameState = null;
+
+        function updateGameState() {
+            fetch('/game/state')
+                .then(response => response.json())
+                .then(state => {
+                    gameState = state;
+                    renderGame();
+                });
+        }
+
+        function renderGame() {
+            updatePlayerHands('player1-area', gameState.player1);
+            updatePlayerHands('player2-area', gameState.player2);
+
+            document.getElementById('player1-area').classList.toggle('active', gameState.currentTurn === 1);
+            document.getElementById('player2-area').classList.toggle('active', gameState.currentTurn === 2);
+
+            const currentPlayer = gameState.currentTurn === 1 ? gameState.player1 : gameState.player2;
+            document.getElementById('splitButton').disabled = !currentPlayer.canSplit;
+
+            document.querySelectorAll('.turn-indicator').forEach(indicator => {
+                indicator.textContent = `${gameState.currentTurn === 1 ? 'Player 1' : 'Player 2'}'s Turn`;
+            });
+
+            const messageDiv = document.getElementById('message');
+            if (gameState.winner) {
+                messageDiv.textContent = `${gameState.winner} wins!`;
+                messageDiv.classList.add('winner');
+            } else {
+                messageDiv.classList.remove('winner');
+            }
+        }
+
+        function updatePlayerHands(playerId, playerState) {
+            const playerDiv = document.getElementById(playerId);
+            const hands = playerDiv.getElementsByClassName('hand');
+            
+            for (let i = 0; i < 2; i++) {
+                const hand = hands[i];
+                const fingers = playerState.hands[i];
+                
+                hand.innerHTML = handSVGs[fingers];
+                
+                hand.classList.toggle('lost', fingers === 5);
+                hand.classList.toggle('disabled', gameState.winner !== null);
+                hand.classList.toggle('can-split', playerState.canSplit);
+                
+                if (fingers === 5) {
+                    hand.classList.remove('selected');
+                }
+            }
+        }
+
+        function handleHandClick(event) {
+            if (gameState.winner) return;
+
+            const hand = event.currentTarget;
+            const player = parseInt(hand.dataset.player);
+            const handIndex = parseInt(hand.dataset.hand);
+
+            if (player !== gameState.currentTurn && selectedHand) {
+                const [selectedPlayer, selectedHandIndex] = selectedHand;
+                if (selectedPlayer === gameState.currentTurn) {
+                    makeMove(selectedHandIndex, handIndex);
+                }
+                return;
+            }
+
+            if (player === gameState.currentTurn) {
+                document.querySelectorAll('.hand').forEach(h => h.classList.remove('selected'));
+                
+                if (!selectedHand || selectedHand[1] !== handIndex) {
+                    hand.classList.add('selected');
+                    selectedHand = [player, handIndex];
+                } else {
+                    selectedHand = null;
+                }
+            }
+        }
+
+        function makeMove(fromHand, toHand) {
+            fetch('/game/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fromHand, toHand })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    gameState = data.gameState;
+                    selectedHand = null;
+                    document.querySelectorAll('.hand').forEach(h => h.classList.remove('selected'));
+                    renderGame();
+                }
+            });
+        }
+
+        function split() {
+            fetch('/game/split', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    gameState = data.gameState;
+                    renderGame();
+                }
+            });
+        }
+
+        function resetGame() {
+            fetch('/game/reset', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(state => {
+                gameState = state;
+                selectedHand = null;
+                document.querySelectorAll('.hand').forEach(h => h.classList.remove('selected'));
+                renderGame();
+            });
+        }
+          // Rules modal functionality
+          const rulesModal = document.getElementById('rulesModal');
+        const infoButton = document.getElementById('infoButton');
+        const closeRules = document.querySelector('.close-rules');
+
+        infoButton.addEventListener('click', () => {
+            rulesModal.style.display = 'block';
+        });
+
+        closeRules.addEventListener('click', () => {
+            rulesModal.style.display = 'none';
+        });
+
+        rulesModal.addEventListener('click', (e) => {
+            if (e.target === rulesModal) {
+                rulesModal.style.display = 'none';
+            }
+        });
+
+
+        // Initialize game
+        document.querySelectorAll('.hand').forEach(hand => {
+            hand.addEventListener('click', handleHandClick);
+        });
+
+        document.getElementById('splitButton').addEventListener('click', split);
+        document.getElementById('resetButton').addEventListener('click', resetGame);
+
+        // Prevent zooming on double tap
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        // Initial game state
+        updateGameState();
+    </script>
+</body>
+</html>
